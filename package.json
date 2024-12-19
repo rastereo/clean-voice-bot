@@ -1,0 +1,28 @@
+{
+  "name": "clean-voice-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon",
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "elevenlabs": "^1.50.2",
+    "file-type": "^15.0.1",
+    "get-audio-duration": "^4.0.1",
+    "grammy": "^1.33.0"
+  }
+}
