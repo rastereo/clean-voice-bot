@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "author": "",
+  "author": "rastereo",
   "license": "ISC",
   "scripts": {
     "build": "tsc",
@@ -21,8 +21,8 @@
   "dependencies": {
     "dotenv": "^16.4.7",
     "elevenlabs": "^1.50.2",
-    "file-type": "^15.0.1",
     "get-audio-duration": "^4.0.1",
-    "grammy": "^1.33.0"
+    "grammy": "^1.33.0",
+    "winston": "^3.17.0"
   }
 }

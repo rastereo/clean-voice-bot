@@ -1,6 +1,5 @@
 import { ElevenLabsClient, play, ElevenLabsError } from 'elevenlabs';
 import fs from 'fs';
-import { fromStream, fromBuffer } from 'file-type';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -26,19 +25,6 @@ async function getIsolationVoice(
       chunks.push(chunk);
     }
     const audioBuffer = await Buffer.concat(chunks);
-
-    // const bufferFormat = await fromBuffer(audioBuffer);
-
-    // if (!bufferFormat) {
-    //   throw new Error('Buffer format not defined');
-    // }
-
-    // fs.writeFileSync(
-    //   `./results/${fileName.split('.')[0]}_@cleanVoiceBot.${bufferFormat.ext}`,
-    //   audioBuffer,
-    // );
-
-    // return `./results/${fileName.split('.')[0]}_@cleanVoiceBot.${bufferFormat.ext}`;]]
 
     return audioBuffer;
   } catch (err) {

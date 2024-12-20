@@ -1,10 +1,8 @@
-import { Bot, InlineKeyboard, InputFile } from 'grammy';
-import { existsSync, mkdirSync, writeFile, writeFileSync } from 'fs';
+import { Bot, GrammyError, HttpError, InlineKeyboard, InputFile } from 'grammy';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { basename, extname, join } from 'path';
-import { Document } from './types';
 import dotenv from 'dotenv';
-import { fromFile, stream } from 'file-type';
-import getAudioDurationInSeconds from 'get-audio-duration';
+
 import getIsolationVoice from './utils/getIsolationVoice';
 import {
   startMessage,
@@ -12,8 +10,13 @@ import {
   errorDurationMessage,
   fileInfoMessage,
   fileNotFoundMessage,
+  reuploadFileMessage,
+  notTextMessage,
 } from './components/messages';
 import Ffmpeg from './services/ffmpeg';
+import logger from './configs/logger';
+
+import { Document } from './types';
 
 dotenv.config();
 
@@ -50,7 +53,7 @@ bot.api.setMyCommands([
 ]);
 
 bot.command('start', async (ctx) => {
-  // await ctx.editMessageReplyMarkup();
+  logger.info(`${ctx.from?.id} ${ctx.from?.username}: ${ctx.message?.text}`);
 
   const button = new InlineKeyboard().text('Примеры', 'examples_button');
 
@@ -61,42 +64,50 @@ bot.command('start', async (ctx) => {
 });
 
 bot.command('examples', async (ctx) => {
-  // await ctx.editMessageReplyMarkup();
+  logger.info(`${ctx.from?.id} ${ctx.from?.username}: ${ctx.message?.text}`);
 
-  ctx.replyWithAudio(
+  ctx.replyWithDocument(
     new InputFile(join(process.cwd(), 'src/assets/voice.mp3')),
   );
-  ctx.replyWithAudio(
+  ctx.replyWithDocument(
     new InputFile(join(process.cwd(), 'src/assets/voice_@cleanVoiceBot.mp3')),
   );
-  ctx.replyWithAudio(
+  ctx.replyWithDocument(
     new InputFile(join(process.cwd(), 'src/assets/interview.mp3')),
   );
-  ctx.replyWithAudio(
+  ctx.replyWithDocument(
     new InputFile(
       join(process.cwd(), 'src/assets/interview_@cleanVoiceBot.mp3'),
     ),
   );
 });
 
-bot.on([':photo', ':video'], (ctx) => {
-  ctx.reply(errorFormatMessage, {
-    parse_mode: 'MarkdownV2',
-  });
-});
-
 bot.on([':document', ':audio', ':voice'], async (ctx) => {
   // await ctx.editMessageReplyMarkup();
+
+  let updateType = '';
+
+  if (ctx.msg.document) {
+    updateType = ':document';
+  } else if (ctx.msg.audio) {
+    updateType = ':audio';
+  } else if (ctx.msg.voice) {
+    updateType = ':voice';
+  }
 
   const { file_size, mime_type, file_name, file_id } =
     ctx.msg.document || (ctx.msg.audio as Document) || ctx.msg.voice;
 
   const userId = ctx?.from?.id;
 
-  const filePath = (await ctx.api.getFile(file_id)).file_path;
+  logger.info(
+    `${ctx.from?.id} ${ctx.from?.username}: uploaded ${updateType} ${file_name ? file_name : ''}`,
+  );
 
-  if (filePath && file_size && mime_type && file_id) {
-    const { stream, format } = await ffmpeg.getInfoAudio(filePath);
+  const { file_path } = await ctx.api.getFile(file_id);
+
+  if (file_path && file_size && mime_type && file_id) {
+    const { stream, format } = await ffmpeg.getInfoAudio(file_path);
 
     // const fileFormat = await fromFile(filePath);
 
@@ -111,6 +122,10 @@ bot.on([':document', ':audio', ':voice'], async (ctx) => {
     // );
 
     if (Number(format.duration) > Number(process.env.GATE_DURATION)) {
+      logger.error(
+        `${ctx.from?.id} ${ctx.from?.username}: ${file_name} ${format.duration} Duration false`,
+      );
+
       return ctx.reply(errorDurationMessage);
     }
 
@@ -120,6 +135,7 @@ bot.on([':document', ':audio', ':voice'], async (ctx) => {
       stream,
       format,
       file_name: file_name || (ctx.msg.voice ? 'voice' : 'file'),
+      file_path,
     });
 
     return ctx.reply(
@@ -138,26 +154,47 @@ bot.on([':document', ':audio', ':voice'], async (ctx) => {
 
     // return ctx.reply(`${fileFormat?.ext} ${fileFormat?.mime} ${Math.round(audioDuration)}`);
   } else {
+    logger.error(
+      `${ctx.from?.id} ${ctx.from?.username}: ${fileNotFoundMessage}} ${file_path}`,
+    );
     return ctx.reply(fileNotFoundMessage);
   }
 });
 
+bot.on([':photo', ':video'], (ctx) => {
+  logger.info(`${ctx.from?.id} ${ctx.from?.username}: uploaded photo or video`);
+
+  ctx.reply(errorFormatMessage, {
+    parse_mode: 'MarkdownV2',
+  });
+});
+
+bot.on('message:text', (ctx) => {
+  logger.info(`${ctx.from?.id} ${ctx.from?.username}: message ${ctx.msg.text}`);
+
+  ctx.reply(notTextMessage)
+});
+
 bot.callbackQuery('continue_button', async (ctx) => {
+  await ctx.editMessageReplyMarkup();
+
   const userId = ctx.from.id;
 
   if (audioIdStorage.has(userId)) {
-    const { stream, format, file_name } = audioIdStorage.get(userId);
+    const { stream, format, file_name, file_path } = audioIdStorage.get(userId);
 
-    console.log(audioIdStorage.get(userId));
+    logger.info(
+      `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery.data} ${file_name}`,
+    );
 
     try {
       const outputFilePath = join(
         process.cwd(),
         process.env.RESULTS_DIR_NAME || '',
-        `${basename(file_name, extname(file_name))}_@cleanVoiceBot.${format.format_name}`,
+        `${basename(file_path, extname(file_path))}@cleanVoiceBot.${format.format_name}`,
       );
 
-      console.log(outputFilePath);
+      // console.log(outputFilePath);
 
       // `./results/${fileName.split('.')[0]}_@cleanVoiceBot.${bufferFormat.ext}`;]]
 
@@ -167,13 +204,18 @@ bot.callbackQuery('continue_button', async (ctx) => {
           file_name,
         );
 
+        console.log(file_name);
+
+        logger.info(
+          `${ctx.from?.id} ${ctx.from?.username}: sended ${outputFilePath}`,
+        );
+
         if (format.format_name === 'mp3') {
           await writeFileSync(outputFilePath, audioIsolationBuffer);
 
-          return await ctx.replyWithAudio(
-            new InputFile(outputFilePath),
-            file_name,
-          );
+          console.log(file_name);
+
+          return await ctx.replyWithDocument(new InputFile(outputFilePath));
         }
 
         await ffmpeg.convertAudio(
@@ -181,30 +223,42 @@ bot.callbackQuery('continue_button', async (ctx) => {
           outputFilePath,
           stream.sample_rate,
           format.bit_rate,
-          format.format_name
+          format.format_name,
         );
 
         if (file_name === 'voice') {
-          // await writeFileSync(outputFilePath, audioIsolationBuffer);
-
           return await ctx.replyWithVoice(new InputFile(outputFilePath));
         }
 
-        await ctx.replyWithAudio(new InputFile(outputFilePath), file_name);
+        logger.info(
+          `${ctx.from?.id} ${ctx.from?.username}: ${ctx.callbackQuery.data} ${outputFilePath}`,
+        );
+
+        return await ctx.replyWithDocument(new InputFile(outputFilePath));
       }
     } catch (err) {
       if (err instanceof Error) {
-        ctx.reply(`❗${err.message}`);
+        logger.error(`${ctx.from?.id} ${ctx.from?.username}: ${err.message}`);
+
+        return ctx.reply(`❗${err.message}`);
       }
     }
   } else {
-    ctx.reply(fileNotFoundMessage);
+    logger.error(
+      `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery.data} File not found in audioStorage`,
+    );
+
+    return ctx.reply(reuploadFileMessage);
   }
 
   return await ctx.editMessageReplyMarkup();
 });
 
 bot.callbackQuery('examples_button', (ctx) => {
+  logger.info(
+    `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery.data}`,
+  );
+
   ctx.reply('Примеры:');
   ctx.replyWithAudio(
     new InputFile(join(process.cwd(), 'src/assets/voice.mp3')),
@@ -222,4 +276,23 @@ bot.callbackQuery('examples_button', (ctx) => {
   );
 });
 
+bot.catch((err) => {
+  const ctx = err.ctx;
+  const e = err.error;
+
+  if (ctx) {
+    logger.error(`Error while handling update ${ctx.update.update_id}:`);
+  }
+
+  if (e instanceof GrammyError) {
+    logger.error(`Telegram API error: ${e.description}`);
+  } else if (e instanceof HttpError) {
+    logger.error(`HTTP error: ${e}`);
+  } else {
+    logger.error(`Unexpected error: ${e}`);
+  }
+});
+
 bot.start();
+
+logger.info('Bot is running');

@@ -93,13 +93,13 @@ class Ffmpeg {
       ffmpeg.stdin.write(buffer);
       ffmpeg.stdin.end();
 
-      ffmpeg.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
-      });
+      // ffmpeg.stdout.on('data', (data) => {
+      //   console.log(`stdout: ${data}`);
+      // });
 
-      ffmpeg.stderr.on('data', (data) => {
-        console.error(`stderr: ${data}`);
-      });
+      // ffmpeg.stderr.on('data', (data) => {
+      //   console.error(`stderr: ${data}`);
+      // });
 
       ffmpeg.on('close', (code) => {
         if (code === 0) {
