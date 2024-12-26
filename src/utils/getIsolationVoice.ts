@@ -32,9 +32,13 @@ async function getIsolationVoice(
       if (err.statusCode === 401) {
         throw new Error('Превышен лимит');
       }
+
+      // if (err.statusCode === 403) {
+      //   throw new Error('Forbidden')
+      // }
     }
 
-    throw new Error('Failed to isolate voice.');
+    throw new Error(`Failed to isolate voice.`);
   }
 }
 

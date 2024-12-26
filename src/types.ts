@@ -1,9 +1,9 @@
 export interface Document {
-  file_name: string;
   mime_type: string;
   file_id: string;
   file_unique_id: string;
   file_size: number;
+  file_name?: string;
 }
 
 interface FFprobeDisposition {
@@ -60,7 +60,7 @@ interface FFprobeFormat {
   start_time: string;
   duration: string;
   size: string;
-  bit_rate: string;
+  bit_rate?: string;
   probe_score: number;
 }
 
