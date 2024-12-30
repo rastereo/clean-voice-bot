@@ -13,8 +13,12 @@ import {
   sendNotTextMessage,
   sendStartInfo,
 } from './controllers/bot.controller';
+import Ffmpeg from './services/ffmpeg';
+import { donateMessage } from './components/messages';
 
 dotenv.config();
+
+const ffmpeg = new Ffmpeg();
 
 const resultDirPath = join(
   process.cwd(),
@@ -52,11 +56,42 @@ bot.command('examples', sendExamples);
 
 bot.on([':document', ':audio', ':voice'], sendAudioInfo);
 
-bot.on([':photo', ':video'], sendFormatMessage);
+bot.on([':photo'], sendFormatMessage);
+
+bot.on(['message:video_note'], async (ctx: Context) => {
+  if (ctx.msg?.video_note) {
+    // eslint-disable-next-line no-unsafe-optional-chaining
+    const { file_id } = ctx.msg?.video_note;
+
+    // console.log(videoNote?.file_id);
+
+    // const { file_id } = videoNote;
+    const { file_path } = await ctx.api.getFile(file_id);
+
+    console.log(file_path);
+
+    // if (file_path && file_size && mime_type && file_id) {
+    const { stream, format } = await ffmpeg.getInfoAudio(file_path || '');
+
+    console.log(stream, format);
+
+    // ctx.replyWithVideoNote
+  }
+});
 
 bot.callbackQuery('continue_button', sendIsolateAudio);
 
 bot.callbackQuery('examples_button', sendExamples);
+
+bot.callbackQuery('donate_button', async (ctx) => {
+  logger.info(
+    `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery?.data}`,
+  );
+
+  await ctx.reply(donateMessage, {
+    parse_mode: 'MarkdownV2',
+  });
+});
 
 bot.on('message:text', sendNotTextMessage);
 

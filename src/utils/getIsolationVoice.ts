@@ -1,6 +1,7 @@
-import { ElevenLabsClient, play, ElevenLabsError } from 'elevenlabs';
+import { ElevenLabsClient, ElevenLabsError } from 'elevenlabs';
 import fs from 'fs';
 import dotenv from 'dotenv';
+import logger from '../configs/logger';
 
 dotenv.config();
 
@@ -10,7 +11,7 @@ const client = new ElevenLabsClient({
 
 async function getIsolationVoice(
   path: string,
-  fileName: string,
+  // fileName: string,
 ): Promise<Buffer> {
   try {
     const file = await fs.createReadStream(path);
@@ -38,7 +39,9 @@ async function getIsolationVoice(
       // }
     }
 
-    throw new Error(`Failed to isolate voice.`);
+    logger.error(`Failed to ElevenLabsClient: ${path}`)
+
+    throw new Error(`Failed to isolate.`);
   }
 }
 

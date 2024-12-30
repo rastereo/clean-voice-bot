@@ -42,7 +42,16 @@ class Ffmpeg {
       ];
     }
 
-    return ['-y', '-i', 'pipe:0', '-ar', sampleRate, '-b:a', bitRate, outputPath];
+    return [
+      '-y',
+      '-i',
+      'pipe:0',
+      '-ar',
+      sampleRate,
+      '-b:a',
+      bitRate,
+      outputPath,
+    ];
   };
 
   public getInfoAudio(filePath: string): Promise<FFprobeResult> {
@@ -83,7 +92,7 @@ class Ffmpeg {
     sampleRate: string,
     bitRate: string,
     formatName: string,
-  ) {
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const ffmpeg = spawn(
         'ffmpeg',
@@ -117,3 +126,26 @@ class Ffmpeg {
 }
 
 export default Ffmpeg;
+
+// Да, можно выполнить это одной командой с использованием FFmpeg, без промежуточных файлов. Для этого используется возможность FFmpeg заменять аудиодорожку "на лету":
+
+// bash
+// Копировать код
+// ffmpeg -i /path/to/input_video.MOV -i /path/to/new_audio.mp3 -map 0:v -map 1:a -c:v copy -c:a aac -shortest /path/to/output_video_with_new_audio.MOV
+// Объяснение команды:
+// -i /path/to/input_video.MOV: Указывает входной видеофайл.
+// -i /path/to/new_audio.mp3: Указывает новый аудиофайл.
+// -map 0:v: Берет видеопоток из первого файла (входное видео).
+// -map 1:a: Берет аудиопоток из второго файла (новое аудио).
+// -c:v copy: Копирует видеопоток без перекодирования.
+// -c:a aac: Кодирует аудио в AAC (или другой кодек, если нужно).
+// -shortest: Обрезает выходной файл по длине самого короткого потока (обычно аудио, чтобы избежать "пустого" видео в конце).
+// Пример:
+// bash
+// Копировать код
+// ffmpeg -i /home/rastereo/dev/telegram-bot-api/build/file_158.MOV -i /home/rastereo/dev/cleanVoiceBot/results/file_158@cleanVoiceBot.mp3 -map 0:v -map 1:a -c:v copy -c:a aac -shortest /home/rastereo/dev/telegram-bot-api/build/file_158_test.MOV
+// Преимущества:
+// Нет необходимости создавать промежуточный файл.
+// Работает быстрее, так как не перекодирует видео.
+// Уменьшает использование дискового пространства.
+// Если нужно больше опций (например, буферизация или специфический кодек), напишите, и я помогу уточнить команду.

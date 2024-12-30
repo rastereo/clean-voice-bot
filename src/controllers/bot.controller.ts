@@ -10,6 +10,9 @@ import {
   InputFile,
 } from 'grammy';
 
+import logger from '../configs/logger';
+import Ffmpeg from '../services/ffmpeg';
+import getIsolationVoice from '../utils/getIsolationVoice';
 import {
   errorDurationMessage,
   errorFormatMessage,
@@ -19,9 +22,6 @@ import {
   reuploadFileMessage,
   startMessage,
 } from '../components/messages';
-import logger from '../configs/logger';
-import Ffmpeg from '../services/ffmpeg';
-import getIsolationVoice from '../utils/getIsolationVoice';
 
 const audioIdStorage = new Map();
 
@@ -30,7 +30,11 @@ const ffmpeg = new Ffmpeg();
 export const sendStartInfo = async (ctx: CommandContext<Context>) => {
   logger.info(`${ctx.from?.id} ${ctx.from?.username}: ${ctx.message?.text}`);
 
-  const button = new InlineKeyboard().text('Примеры', 'examples_button');
+  const button = new InlineKeyboard()
+    .text('🍩Поддержать проект', 'donate_button')
+    .row()
+    .text('👂Примеры', 'examples_button')
+    .row();
 
   ctx.reply(startMessage, {
     reply_markup: button,
@@ -71,7 +75,7 @@ export const sendAudioInfo = async (ctx: Context) => {
     return ctx.reply(fileNotFoundMessage);
   }
 
-  let updateType: string = ctx.msg?.document
+  const updateType: string = ctx.msg?.document
     ? 'document'
     : ctx.msg?.audio
       ? 'audio'
@@ -86,10 +90,6 @@ export const sendAudioInfo = async (ctx: Context) => {
       : 'unknown';
 
   const { file_size, mime_type, file_name, file_id } = fileData;
-
-  logger.info(
-    `${ctx.from?.id} ${ctx.from?.username}: uploaded ${updateType} ${file_name ? file_name : ''}`,
-  );
 
   const { file_path } = await ctx.api.getFile(file_id);
 
@@ -115,7 +115,7 @@ export const sendAudioInfo = async (ctx: Context) => {
       Number(format.duration) < Number(process.env.GATE_MIN_DURATION)
     ) {
       logger.error(
-        `${ctx.from?.id} ${ctx.from?.username}: ${file_name} ${format.duration} Duration false`,
+        `${ctx.from?.id} ${ctx.from?.username}: ${file_name} ${format.duration} Duration false ${file_path}`,
       );
 
       return ctx.reply(errorDurationMessage, {
@@ -131,6 +131,10 @@ export const sendAudioInfo = async (ctx: Context) => {
       file_name,
       file_path,
     });
+
+    logger.info(
+      `${ctx.from?.id} ${ctx.from?.username}: uploaded ${updateType} ${file_name ? file_name : ''} ${file_path}`,
+    );
 
     return ctx.reply(
       fileInfoMessage(
@@ -177,7 +181,7 @@ export const sendIsolateAudio = async (ctx: CallbackQueryContext<Context>) => {
       if (format.filename) {
         const audioIsolationBuffer = await getIsolationVoice(
           format.filename,
-          file_name,
+          // file_name,
         );
 
         if (format.format_name === 'mp3') {

@@ -59,6 +59,10 @@ export const errorDurationMessage = `❗Длительность файла не
 
 ✨Попробуй снова\\.`;
 
+export const donateMessage = `Вы можете поддержать проект на [Boosty](https://boosty.to/cleanvoicebot/donate)
+
+Спасибо\\! 💖`
+
 export const fileNotFoundMessage = '❗Файл не найден';
 
 export const reuploadFileMessage =
