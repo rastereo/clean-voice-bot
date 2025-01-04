@@ -7,6 +7,7 @@ import logger from './configs/logger';
 import {
   exportLogs,
   sendAudioInfo,
+  sendDonateInfo,
   sendExamples,
   sendFormatMessage,
   sendIsolateAudio,
@@ -14,7 +15,8 @@ import {
   sendStartInfo,
 } from './controllers/bot.controller';
 import Ffmpeg from './services/ffmpeg';
-import { donateMessage } from './components/messages';
+import i18n from './configs/il8n';
+import { MyContext } from './types';
 
 dotenv.config();
 
@@ -27,7 +29,7 @@ const resultDirPath = join(
 
 const token = process.env.BOT_KEY || '';
 
-const bot = new Bot(token, {
+const bot = new Bot<MyContext>(token, {
   client: {
     apiRoot: process.env.API_ROOT,
   },
@@ -37,14 +39,22 @@ if (!existsSync(resultDirPath)) {
   mkdirSync(resultDirPath)!;
 }
 
+bot.use(i18n);
+
+// bot.use(async (ctx, next) => {
+//   ctx.i18n.useLocale('en');
+
+//   await next();
+// })
+
 bot.api.setMyCommands([
   {
     command: 'start',
-    description: 'Информация',
+    description: 'Guid',
   },
   {
     command: 'examples',
-    description: 'Примеры',
+    description: 'Examples',
   },
 ]);
 
@@ -56,7 +66,7 @@ bot.command('examples', sendExamples);
 
 bot.on([':document', ':audio', ':voice'], sendAudioInfo);
 
-bot.on([':photo'], sendFormatMessage);
+bot.on([':photo', ':video'], sendFormatMessage);
 
 bot.on(['message:video_note'], async (ctx: Context) => {
   if (ctx.msg?.video_note) {
@@ -83,15 +93,7 @@ bot.callbackQuery('continue_button', sendIsolateAudio);
 
 bot.callbackQuery('examples_button', sendExamples);
 
-bot.callbackQuery('donate_button', async (ctx) => {
-  logger.info(
-    `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery?.data}`,
-  );
-
-  await ctx.reply(donateMessage, {
-    parse_mode: 'MarkdownV2',
-  });
-});
+bot.callbackQuery('donate_button', sendDonateInfo);
 
 bot.on('message:text', sendNotTextMessage);
 

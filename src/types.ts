@@ -1,3 +1,8 @@
+import { Context } from 'grammy';
+import { I18nFlavor } from '@grammyjs/i18n';
+
+export type MyContext = Context & I18nFlavor;
+
 export interface Document {
   mime_type: string;
   file_id: string;

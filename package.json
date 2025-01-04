@@ -24,6 +24,7 @@
     "typescript-eslint": "^8.18.2"
   },
   "dependencies": {
+    "@grammyjs/i18n": "^1.1.2",
     "dotenv": "^16.4.7",
     "elevenlabs": "^1.50.2",
     "grammy": "^1.33.0",

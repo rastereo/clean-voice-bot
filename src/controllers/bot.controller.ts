@@ -13,33 +13,31 @@ import {
 import logger from '../configs/logger';
 import Ffmpeg from '../services/ffmpeg';
 import getIsolationVoice from '../utils/getIsolationVoice';
-import {
-  errorDurationMessage,
-  errorFormatMessage,
-  fileInfoMessage,
-  fileNotFoundMessage,
-  notTextMessage,
-  reuploadFileMessage,
-  startMessage,
-} from '../components/messages';
+import { MyContext } from '../types';
 
 const audioIdStorage = new Map();
 
 const ffmpeg = new Ffmpeg();
 
-export const sendStartInfo = async (ctx: CommandContext<Context>) => {
+export const sendStartInfo = async (ctx: CommandContext<MyContext>) => {
   logger.info(`${ctx.from?.id} ${ctx.from?.username}: ${ctx.message?.text}`);
 
   const button = new InlineKeyboard()
-    .text('🍩Поддержать проект', 'donate_button')
+    .text(ctx.t('support-button'), 'donate_button')
     .row()
-    .text('👂Примеры', 'examples_button')
+    .text(ctx.t('examples-button'), 'examples_button')
     .row();
 
-  ctx.reply(startMessage, {
-    reply_markup: button,
-    parse_mode: 'MarkdownV2',
-  });
+  await ctx.reply(
+    ctx.t('start-message', {
+      min_duration: process.env.GATE_MIN_DURATION || '5',
+      max_duration: Number(process.env.GATE_MAX_DURATION) / 60 || '5',
+    }),
+    {
+      reply_markup: button,
+      parse_mode: 'MarkdownV2',
+    },
+  );
 };
 
 export const sendExamples = async (
@@ -65,14 +63,24 @@ export const sendExamples = async (
   );
 };
 
-export const sendAudioInfo = async (ctx: Context) => {
+export const sendDonateInfo = async (ctx: CallbackQueryContext<MyContext>) => {
+  logger.info(
+    `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery?.data}`,
+  );
+
+  await ctx.reply(ctx.t('donate-message'), {
+    parse_mode: 'MarkdownV2',
+  });
+}
+
+export const sendAudioInfo = async (ctx: MyContext) => {
   const userId = ctx.from?.id;
 
   const fileData =
     ctx.msg?.document || ctx.msg?.audio || (ctx.msg?.voice as Document);
 
   if (!fileData) {
-    return ctx.reply(fileNotFoundMessage);
+    return ctx.reply(ctx.t('file-not-found-message'));
   }
 
   const updateType: string = ctx.msg?.document
@@ -101,14 +109,10 @@ export const sendAudioInfo = async (ctx: Context) => {
     }
 
     if (stream.codec_type !== 'audio') {
-      return ctx.reply(errorFormatMessage, {
+      return await ctx.reply(ctx.t('error-format-message'), {
         parse_mode: 'MarkdownV2',
       });
     }
-
-    // const audioDuration: number = Math.round(
-    //   await getAudioDurationInSeconds(filePath),
-    // );
 
     if (
       Number(format.duration) > Number(process.env.GATE_MAX_DURATION) ||
@@ -118,12 +122,21 @@ export const sendAudioInfo = async (ctx: Context) => {
         `${ctx.from?.id} ${ctx.from?.username}: ${file_name} ${format.duration} Duration false ${file_path}`,
       );
 
-      return ctx.reply(errorDurationMessage, {
-        parse_mode: 'MarkdownV2',
-      });
+      return await ctx.reply(
+        ctx.t('error-duration-message', {
+          min_duration: process.env.GATE_MIN_DURATION || '5',
+          max_duration: Number(process.env.GATE_MAX_DURATION) / 60 || '5',
+        }),
+        {
+          parse_mode: 'MarkdownV2',
+        },
+      );
     }
 
-    const button = new InlineKeyboard().text('Продолжить', `continue_button`);
+    const button = new InlineKeyboard().text(
+      ctx.t('continue-button'),
+      `continue_button`,
+    );
 
     audioIdStorage.set(userId, {
       stream,
@@ -136,30 +149,30 @@ export const sendAudioInfo = async (ctx: Context) => {
       `${ctx.from?.id} ${ctx.from?.username}: uploaded ${updateType} ${file_name ? file_name : ''} ${file_path}`,
     );
 
-    return ctx.reply(
-      fileInfoMessage(
-        file_name,
-        stream.codec_long_name,
-        stream.sample_rate,
-        file_size,
-        Number(stream.duration),
-      ),
+    return await ctx.reply(
+      ctx.t('file-info-message', {
+        name: file_name,
+        mimeType: stream.codec_long_name,
+        sampleRate: stream.sample_rate,
+        fileSize: file_size,
+        duration: Math.round(Number(stream.duration)),
+      }),
       {
         reply_markup: button,
         parse_mode: 'HTML',
       },
     );
-
-    // return ctx.reply(`${fileFormat?.ext} ${fileFormat?.mime} ${Math.round(audioDuration)}`);
   } else {
     logger.error(
-      `${ctx.from?.id} ${ctx.from?.username}: ${fileNotFoundMessage}} ${file_path}`,
+      `${ctx.from?.id} ${ctx.from?.username}: ${ctx.t('file-not-found-message')} ${file_path}`,
     );
-    return ctx.reply(fileNotFoundMessage);
+    return await ctx.reply(ctx.t('file-not-found-message'));
   }
 };
 
-export const sendIsolateAudio = async (ctx: CallbackQueryContext<Context>) => {
+export const sendIsolateAudio = async (
+  ctx: CallbackQueryContext<MyContext>,
+) => {
   await ctx.editMessageReplyMarkup();
 
   const userId = ctx.from.id;
@@ -181,7 +194,6 @@ export const sendIsolateAudio = async (ctx: CallbackQueryContext<Context>) => {
       if (format.filename) {
         const audioIsolationBuffer = await getIsolationVoice(
           format.filename,
-          // file_name,
         );
 
         if (format.format_name === 'mp3') {
@@ -222,7 +234,7 @@ export const sendIsolateAudio = async (ctx: CallbackQueryContext<Context>) => {
         //   await spawn('sudo wg-quick up wg0');
         // }
 
-        return ctx.reply(`❗${err.message}`);
+        return await ctx.reply(`❗${err.message}`);
       }
     }
   } else {
@@ -230,26 +242,26 @@ export const sendIsolateAudio = async (ctx: CallbackQueryContext<Context>) => {
       `${ctx.from?.id} ${ctx.from?.username}: clicked ${ctx.callbackQuery.data} File not found in audioStorage`,
     );
 
-    return ctx.reply(reuploadFileMessage);
+    return await ctx.reply(ctx.t('reupload-file-message'));
   }
 
   return await ctx.editMessageReplyMarkup();
 };
 
-export const sendFormatMessage = (ctx: Context) => {
+export const sendFormatMessage = async (ctx: MyContext) => {
   logger.info(`${ctx.from?.id} ${ctx.from?.username}: uploaded photo or video`);
 
-  ctx.reply(errorFormatMessage, {
+  await ctx.reply(ctx.t('error-format-message'), {
     parse_mode: 'MarkdownV2',
   });
 };
 
-export const sendNotTextMessage = (ctx: Context) => {
+export const sendNotTextMessage = async (ctx: MyContext) => {
   logger.info(
     `${ctx.from?.id} ${ctx.from?.username}: message ${ctx.msg?.text}`,
   );
 
-  ctx.reply(notTextMessage);
+  await ctx.reply(ctx.t('not-text-message'));
 };
 
 export const exportLogs = async (ctx: HearsContext<Context>) => {

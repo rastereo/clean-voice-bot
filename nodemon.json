@@ -3,6 +3,6 @@
     "./src",
     ".env"
   ],
-  "ext": ".ts,.js",
+  "ext": ".ts,.js,.ftl",
   "exec": "ts-node ./src/index.ts"
 }
