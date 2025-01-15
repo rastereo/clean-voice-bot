@@ -71,7 +71,74 @@ export const sendDonateInfo = async (ctx: CallbackQueryContext<MyContext>) => {
   await ctx.reply(ctx.t('donate-message'), {
     parse_mode: 'MarkdownV2',
   });
-}
+};
+
+export const sendVideoInfo = async (ctx: MyContext) => {
+  const userId = ctx.from?.id;
+
+  const fileData = ctx.msg?.video_note;
+
+  console.log(fileData);
+
+  if (!fileData) {
+    return ctx.reply(ctx.t('file-not-found-message'));
+  }
+
+  const { file_path } = await ctx.api.getFile(fileData.file_id);
+
+  if (
+    Number(fileData.duration) > Number(process.env.GATE_MAX_DURATION) ||
+    Number(fileData.duration) < Number(process.env.GATE_MIN_DURATION)
+  ) {
+    logger.error(
+      `${ctx.from?.id} ${ctx.from?.username}: vide_note ${fileData.duration} Duration false ${file_path}`,
+    );
+
+    return await ctx.reply(
+      ctx.t('error-duration-message', {
+        min_duration: process.env.GATE_MIN_DURATION || '5',
+        max_duration: Number(process.env.GATE_MAX_DURATION) / 60 || '5',
+      }),
+      {
+        parse_mode: 'MarkdownV2',
+      },
+    );
+  }
+
+  const { stream, format } = await ffmpeg.getInfoAudio(file_path as string);
+
+  const button = new InlineKeyboard().text(
+    ctx.t('continue-button'),
+    `continue_button`,
+  );
+
+  console.log(stream, format);
+
+  audioIdStorage.set(userId, {
+    stream,
+    format,
+    file_name: 'video_note',
+    file_path,
+  });
+
+  logger.info(
+    `${ctx.from?.id} ${ctx.from?.username}: uploaded 'vide_note' ${file_path}`,
+  );
+
+  return await ctx.reply(
+    ctx.t('file-info-message', {
+      name: 'vide_note',
+      mimeType: stream.codec_long_name,
+      sampleRate: stream.sample_rate,
+      fileSize: Number(fileData.file_size),
+      duration: Math.round(Number(stream.duration)),
+    }),
+    {
+      reply_markup: button,
+      parse_mode: 'HTML',
+    },
+  );
+};
 
 export const sendAudioInfo = async (ctx: MyContext) => {
   const userId = ctx.from?.id;
@@ -166,6 +233,7 @@ export const sendAudioInfo = async (ctx: MyContext) => {
     logger.error(
       `${ctx.from?.id} ${ctx.from?.username}: ${ctx.t('file-not-found-message')} ${file_path}`,
     );
+
     return await ctx.reply(ctx.t('file-not-found-message'));
   }
 };
@@ -188,13 +256,11 @@ export const sendIsolateAudio = async (
       const outputFilePath = join(
         process.cwd(),
         process.env.RESULTS_DIR_NAME || '',
-        `${basename(file_path, extname(file_path))}@cleanVoiceBot.${format.format_name}`,
+        `${basename(file_path, extname(file_path))}@cleanVoiceBot.${file_name === 'video_note' ? 'mp4' : format.format_name}`,
       );
 
       if (format.filename) {
-        const audioIsolationBuffer = await getIsolationVoice(
-          format.filename,
-        );
+        const audioIsolationBuffer = await getIsolationVoice(format.filename);
 
         if (format.format_name === 'mp3') {
           logger.info(
@@ -204,6 +270,12 @@ export const sendIsolateAudio = async (
           await writeFileSync(outputFilePath, audioIsolationBuffer);
 
           return await ctx.replyWithDocument(new InputFile(outputFilePath));
+        }
+
+        if (file_name === 'video_note') {
+          await ffmpeg.replaceAudio(audioIsolationBuffer, outputFilePath, file_path)
+
+          return await ctx.replyWithVideoNote(new InputFile(outputFilePath))
         }
 
         await ffmpeg.convertAudio(

@@ -6,7 +6,7 @@
   "author": "rastereo",
   "license": "ISC",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && rm -rf dist/locales && cp -r src/locales dist/locales",
     "start": "node dist/index.js",
     "deploy": "npm run build && pm2 kill && pm2 start dist/index.js --name bot",
     "dev": "nodemon",
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9.17.0",
     "globals": "^15.14.0",
     "nodemon": "^3.1.9",

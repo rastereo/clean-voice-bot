@@ -29,7 +29,6 @@ async function getIsolationVoice(
 
     return audioBuffer;
   } catch (err) {
-    console.log(err);
     if (err instanceof ElevenLabsError) {
       if (err.statusCode === 401) {
         throw new Error('Превышен лимит');

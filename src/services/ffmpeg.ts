@@ -54,6 +54,23 @@ class Ffmpeg {
     ];
   };
 
+  private ffmpegReplaceAudio = (videoPath: string, outputPath: string) => [
+    '-i',
+    videoPath,
+    '-i',
+    'pipe:0',
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-c:v',
+    'copy',
+    '-c:a',
+    'aac',
+    '-shortest',
+    outputPath,
+  ];
+
   public getInfoAudio(filePath: string): Promise<FFprobeResult> {
     return new Promise((resolve, reject) => {
       const ffprobe = spawn('ffprobe', this.ffprobeCommand(filePath));
@@ -82,6 +99,34 @@ class Ffmpeg {
         } catch (err) {
           if (err instanceof Error) reject(new Error(err.message));
         }
+      });
+    });
+  }
+
+  public async replaceAudio(
+    buffer: Buffer,
+    outputPath: string,
+    videoPath: string,
+  ) {
+    return new Promise((resolve, reject) => {
+      const ffmpeg = spawn(
+        'ffmpeg',
+        this.ffmpegReplaceAudio(videoPath, outputPath),
+      );
+
+      ffmpeg.stdin.write(buffer);
+      ffmpeg.stdin.end();
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0) {
+          resolve(outputPath);
+        } else {
+          reject(new Error(`FFmpeg exited with code ${code}`));
+        }
+      });
+
+      ffmpeg.on('error', (err) => {
+        reject(new Error(`Failed to start ffmpeg process: ${err.message}`));
       });
     });
   }

@@ -13,21 +13,27 @@ import {
   sendIsolateAudio,
   sendNotTextMessage,
   sendStartInfo,
+  sendVideoInfo,
 } from './controllers/bot.controller';
-import Ffmpeg from './services/ffmpeg';
+// import Ffmpeg from './services/ffmpeg';
 import i18n from './configs/il8n';
 import { MyContext } from './types';
 
 dotenv.config();
 
-const ffmpeg = new Ffmpeg();
+// const ffmpeg = new Ffmpeg();
 
 const resultDirPath = join(
   process.cwd(),
   process.env.RESULTS_DIR_NAME || 'results',
 );
 
-const token = process.env.BOT_KEY || '';
+const token =
+  (process.env.NODE_ENV === 'development'
+    ? process.env.DEV_BOT_KEY
+    : process.env.BOT_KEY) || '';
+
+console.log(process.env.NODE_ENV);
 
 const bot = new Bot<MyContext>(token, {
   client: {
@@ -68,26 +74,7 @@ bot.on([':document', ':audio', ':voice'], sendAudioInfo);
 
 bot.on([':photo', ':video'], sendFormatMessage);
 
-bot.on(['message:video_note'], async (ctx: Context) => {
-  if (ctx.msg?.video_note) {
-    // eslint-disable-next-line no-unsafe-optional-chaining
-    const { file_id } = ctx.msg?.video_note;
-
-    // console.log(videoNote?.file_id);
-
-    // const { file_id } = videoNote;
-    const { file_path } = await ctx.api.getFile(file_id);
-
-    console.log(file_path);
-
-    // if (file_path && file_size && mime_type && file_id) {
-    const { stream, format } = await ffmpeg.getInfoAudio(file_path || '');
-
-    console.log(stream, format);
-
-    // ctx.replyWithVideoNote
-  }
-});
+bot.on(['message:video_note'], sendVideoInfo);
 
 bot.callbackQuery('continue_button', sendIsolateAudio);
 

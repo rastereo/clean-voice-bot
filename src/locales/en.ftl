@@ -10,6 +10,7 @@ start-message =
 
     💾 *What formats do I work with\?*
     \- Voice messages
+    \- Video Messages
     \- MP3
     \- WAV
     \- AIFF
@@ -36,10 +37,11 @@ file-info-message =
     <b>Duration</b>: {$duration} seconds
 
 error-format-message =
-  ❗The format is not supported\.
+    ❗The format is not supported\.
 
     I only support the following formats\:
     \- *Voice messages*
+    \- *Video Messages*
     \- *MP3*
     \- *WAV*
     \- *AIFF*
