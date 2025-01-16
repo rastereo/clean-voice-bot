@@ -1,6 +1,10 @@
+<div align="center">
+  <img src="https://i.ibb.co/P6PmdD9/clean-Voice-Bot.png" alt="logo" border="0" width="150px" />
+</div>
+
 # cleanVoiceBot
 
-cleanVoiceBot is a Telegram bot that helps you remove background noise from audio files. It's easy to use — just send or forward an audio file to the bot, and it will return a cleaned version. The bot supports different audio formats for your convenience.
+cleanVoiceBot is a [Telegram bot](https://core.telegram.org/bots/api) that helps you remove background noise from audio files. It's easy to use — just send or forward an audio file to the bot, and it will return a cleaned version. The bot supports different audio formats for your convenience.
 
 ## Installation
 
@@ -11,6 +15,17 @@ git clone https://github.com/rastereo/cleanVoiceBot.git
 cd clean-voice-bot
 npm install
 ```
+
+**Installing FFmpeg on Linux**
+
+[FFmpeg](https://www.ffmpeg.org/) is required to run this script and can typically be installed on most Linux distributions using a package manager:
+
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+Ensure that FFmpeg is installed and accessible in your system's PATH, so your Node.js script can execute FFmpeg commands successfully.
 
 ## Environment Variables
 
