@@ -64,7 +64,7 @@ For development:
 npm run dev
 ```
 
-🤖 Technologies
+## 🤖 Technologies
 
 The project leverages the following technologies:
 
