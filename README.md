@@ -64,6 +64,15 @@ For development:
 npm run dev
 ```
 
+🤖 Technologies
+
+The project leverages the following technologies:
+
+- [grammY](https://grammy.dev/)
+- [ElevenLabs JS](https://github.com/elevenlabs/elevenlabs-js?tab=readme-ov-file#elevenlabs-js-library)
+- [FFmpeg](https://www.ffmpeg.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+
 ## 🎁Support
 
 Consider supporting the project on [Boosty](https://boosty.to/cleanvoicebot/donate). Your contributions help keep the service running.
